@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="UniDocs: request and approve official university documents.">
+  <title>UniDocs — University Documents</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="#main-content" aria-label="UniDocs home">
+        <span class="logo-mark" aria-hidden="true">U</span>
+        <span>UniDocs</span>
+      </a>
+
+      <nav class="main-nav" aria-label="Main navigation">
+        <ul id="nav-links">
+          <!-- Links change with the role; see renderNav() in app.js -->
+        </ul>
+      </nav>
+
+      <div class="role-switch" role="group" aria-labelledby="role-switch-label">
+        <span id="role-switch-label" class="role-label">View as</span>
+        <button type="button" class="role-button" data-role="student" aria-pressed="true">Student</button>
+        <button type="button" class="role-button" data-role="admin" aria-pressed="false">Admin</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="container">
+    <!-- Loading and error states -->
+    <p id="loading-message" class="status status-loading" role="status" hidden>Loading…</p>
+    <div id="error-box" class="status status-error" role="alert" hidden>
+      <p id="error-message"></p>
+      <button type="button" id="retry-button" class="button button-secondary">Try again</button>
+    </div>
+
+    <!-- ===== STUDENT DASHBOARD ===== -->
+    <div id="student-view" class="view" hidden>
+      <h1>Student Dashboard</h1>
+
+      <div class="student-grid">
+        <section class="panel" aria-labelledby="profile-title">
+          <h2 id="profile-title">My profile</h2>
+          <dl id="profile-details" class="profile"></dl>
+        </section>
+
+        <section id="request-section" class="panel" aria-labelledby="request-title">
+          <h2 id="request-title">Request Document</h2>
+
+          <form id="request-form" novalidate>
+            <div class="form-field">
+              <label for="document-type">Document type</label>
+              <select id="document-type" name="documentType" required aria-describedby="document-type-error">
+                <option value="">Select a document type</option>
+                <option>Enrollment Certificate</option>
+                <option>Student Status Letter</option>
+                <option>Internship Confirmation Letter</option>
+                <option>Transcript Request</option>
+                <option>Visa Support Letter</option>
+                <option>Graduation Confirmation</option>
+              </select>
+              <p id="document-type-error" class="field-error" aria-live="polite"></p>
+            </div>
+
+            <div class="form-field">
+              <label for="purpose">Purpose</label>
+              <select id="purpose" name="purpose" required aria-describedby="purpose-error">
+                <option value="">Select a purpose</option>
+                <option>Employment</option>
+                <option>Internship</option>
+                <option>Visa application</option>
+                <option>Scholarship</option>
+                <option>Bank</option>
+                <option>Other</option>
+              </select>
+              <p id="purpose-error" class="field-error" aria-live="polite"></p>
+            </div>
+
+            <button type="submit" class="button button-primary">Submit request</button>
+            <p id="form-success" class="status status-success" role="status" hidden></p>
+          </form>
+        </section>
+      </div>
+
+      <section id="my-requests" class="panel" aria-labelledby="my-requests-title">
+        <h2 id="my-requests-title">My Requests</h2>
+        <div id="my-request-list" class="card-list"></div>
+      </section>
+    </div>
+
+    <!-- ===== ADMIN DASHBOARD ===== -->
+    <div id="admin-view" class="view" hidden>
+      <h1>University Admin Dashboard</h1>
+
+      <section id="pending-requests" class="panel" aria-labelledby="pending-title">
+        <h2 id="pending-title">Pending document requests</h2>
+        <div id="pending-list" class="card-list"></div>
+      </section>
+
+      <section id="closed-requests" class="panel" aria-labelledby="closed-title">
+        <h2 id="closed-title">Completed and rejected</h2>
+        <div id="closed-list" class="card-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 UniDocs · Official university document service</p>
+    </div>
+  </footer>
+</body>
+</html>
