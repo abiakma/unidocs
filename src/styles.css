@@ -1,0 +1,525 @@
+/* ===== Base ===== */
+:root {
+  --color-primary: #1e3a8a;       /* university navy */
+  --color-primary-dark: #172e6e;
+  --color-accent: #c59d3f;        /* gold */
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-muted: #6b7280;
+  --color-border: #e2e6ef;
+  --color-error: #b91c1c;
+  --color-success: #15803d;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* React renders everything inside #root */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+}
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface);
+  z-index: 10;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ===== Header ===== */
+.site-header {
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom: 4px solid var(--color-accent);
+}
+
+.header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.logo-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  background: var(--color-accent);
+  color: var(--color-primary);
+}
+
+.main-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.main-nav a {
+  color: #fff;
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.main-nav a:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Role switch */
+.role-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.role-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.8;
+  padding: 0 0.5rem;
+}
+
+.role-button {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.role-button[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* ===== Layout ===== */
+main {
+  flex: 1;
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.view h1 {
+  margin: 0;
+}
+
+.student-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+/* ===== Profile ===== */
+.profile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin: 0;
+}
+
+.profile-row {
+  display: contents; /* lets dt and dd sit directly in the grid */
+}
+
+.profile dt {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.profile dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ===== Form ===== */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+select {
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.field-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-error);
+}
+
+.field-error:empty {
+  display: none;
+}
+
+/* ===== Buttons ===== */
+.button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.button-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.button-primary:hover {
+  background: var(--color-primary-dark);
+}
+
+.button-secondary {
+  background: #fff;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.button-approve {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.button-reject {
+  background: #fff;
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* ===== Status messages ===== */
+.status {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 0 0 1rem;
+}
+
+.status p {
+  margin: 0 0 0.5rem;
+}
+
+.status-loading {
+  background: #eef2ff;
+  color: var(--color-primary);
+}
+
+.status-error {
+  background: #fef2f2;
+  color: var(--color-error);
+}
+
+.status-success {
+  background: #f0fdf4;
+  color: var(--color-success);
+  margin: 1rem 0 0;
+}
+
+.empty-text {
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* ===== Request cards ===== */
+.card-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.request-card {
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+.request-card.is-rejected {
+  border-left-color: var(--color-error);
+}
+
+.request-card.is-issued {
+  border-left-color: var(--color-success);
+}
+
+.request-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.request-card-header h3 {
+  margin: 0;
+}
+
+.request-meta {
+  margin: 0 0 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-issued {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ===== Workflow progress ===== */
+.progress {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+}
+
+.progress-step {
+  flex: 1;
+  position: relative;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  counter-increment: step;
+}
+
+/* Numbered circle */
+.progress-step::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0 auto 0.25rem;
+  border-radius: 50%;
+  background: var(--color-border);
+  color: var(--color-muted);
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+/* Line between circles */
+.progress-step:not(:first-child)::after {
+  content: "";
+  position: absolute;
+  top: 0.875rem;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--color-border);
+}
+
+.progress-step.is-done::before {
+  content: "✓";
+  background: var(--color-success);
+  color: #fff;
+}
+
+.progress-step.is-done::after,
+.progress-step.is-current::after {
+  background: var(--color-success);
+}
+
+.progress-step.is-current {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.progress-step.is-current::before {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.progress-step.is-rejected::before {
+  content: "✕";
+  background: var(--color-error);
+  color: #fff;
+}
+
+/* ===== Approval history ===== */
+.history {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.history summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.history ol {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.history li {
+  color: var(--color-muted);
+}
+
+/* ===== Footer ===== */
+.site-footer {
+  background: var(--color-primary);
+  color: #fff;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.site-footer p {
+  margin: 0;
+  padding: 1rem 0;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 800px) {
+  .student-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Stack the workflow vertically on phones */
+  .progress {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  .progress-step::before {
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .progress-step:not(:first-child)::after {
+    display: none;
+  }
+
+  .card-actions .button {
+    flex: 1;
+  }
+}
