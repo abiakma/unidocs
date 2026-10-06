@@ -1,0 +1,31 @@
+{
+  "name": "unidocs",
+  "version": "1.0.0",
+  "description": "UniDocs is a web application for universities to create, manage, and verify official student documents.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://Kausarkizat@github.com/abiakma/unidocs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/abiakma/unidocs/issues"
+  },
+  "homepage": "https://github.com/abiakma/unidocs#readme",
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.3"
+  }
+}

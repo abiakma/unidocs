@@ -24,6 +24,10 @@ body {
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg);
+}
+
+/* React renders everything inside #root */
+#root {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -169,10 +173,6 @@ main {
   gap: 1.5rem;
 }
 
-.view[hidden] {
-  display: none;
-}
-
 .view h1 {
   margin: 0;
 }
@@ -198,6 +198,10 @@ main {
   grid-template-columns: auto 1fr;
   gap: 0.4rem 1rem;
   margin: 0;
+}
+
+.profile-row {
+  display: contents; /* lets dt and dd sit directly in the grid */
 }
 
 .profile dt {
