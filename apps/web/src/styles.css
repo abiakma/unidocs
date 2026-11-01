@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+/* ===== Design tokens (kept from the original UniDocs design) ===== */
+@theme {
+  --color-brand: #1e3a8a; /* university navy */
+  --color-brand-dark: #172e6e;
+  --color-brand-soft: #eef2ff;
+  --color-accent: #c59d3f; /* gold */
+  --color-accent-soft: #fbf5e6;
+  --color-ink: #1f2937;
+  --color-muted: #6b7280;
+  --color-line: #e2e6ef;
+  --color-danger: #b91c1c;
+  --color-success: #15803d;
+  --radius-card: 10px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+@layer base {
+  html {
+    color: var(--color-ink);
+    background: #ffffff;
+  }
+
+  body {
+    margin: 0;
+    line-height: 1.5;
+    background: #ffffff;
+  }
+
+  #root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  dialog::backdrop {
+    background: rgb(15 23 42 / 0.45);
+  }
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  .panel {
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+    padding: 1.25rem;
+  }
+
+  .field-input {
+    width: 100%;
+    font: inherit;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: #fff;
+  }
+
+  .field-input[aria-invalid="true"] {
+    border-color: var(--color-danger);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font: inherit;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--color-brand);
+    color: #fff;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-brand-dark);
+  }
+
+  .btn-secondary {
+    background: #fff;
+    color: var(--color-brand);
+    border-color: var(--color-brand);
+  }
+
+  .btn-approve {
+    background: var(--color-success);
+    color: #fff;
+  }
+
+  .btn-danger {
+    background: #fff;
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  /* ===== Workflow progress (original stepper) ===== */
+  .progress {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: step;
+  }
+
+  .progress-step {
+    flex: 1;
+    position: relative;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    counter-increment: step;
+  }
+
+  .progress-step::before {
+    content: counter(step);
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 0 auto 0.25rem;
+    border-radius: 50%;
+    background: var(--color-line);
+    color: var(--color-muted);
+    font-weight: 700;
+    position: relative;
+    z-index: 1;
+  }
+
+  .progress-step:not(:first-child)::after {
+    content: "";
+    position: absolute;
+    top: 0.875rem;
+    right: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--color-line);
+  }
+
+  .progress-step.is-done::before {
+    content: "✓";
+    background: var(--color-success);
+    color: #fff;
+  }
+
+  .progress-step.is-done::after,
+  .progress-step.is-current::after {
+    background: var(--color-success);
+  }
+
+  .progress-step.is-current {
+    color: var(--color-brand);
+    font-weight: 700;
+  }
+
+  .progress-step.is-current::before {
+    background: var(--color-brand);
+    color: #fff;
+  }
+
+  .progress-step.is-rejected::before {
+    content: "✕";
+    background: var(--color-danger);
+    color: #fff;
+  }
+
+  @media (max-width: 560px) {
+    .progress {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-align: left;
+    }
+
+    .progress-step::before {
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .progress-step:not(:first-child)::after {
+      display: none;
+    }
+  }
+}
