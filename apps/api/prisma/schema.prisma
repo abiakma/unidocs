@@ -1,0 +1,264 @@
+// UniDocs / AHEU certificate management schema.
+// Student academic data is NOT stored here: it is read from the StudentDataProvider (Platonus).
+// Only a snapshot is kept on each document, so issued certificates keep their historical data.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleName {
+  STUDENT
+  SPECIALIST
+  ACCOUNTANT
+  AUTHORIZED_SIGNER
+  SYSTEM_ADMIN
+}
+
+enum CertificateType {
+  ENROLLMENT_CERTIFICATE
+  STUDENT_STATUS_LETTER
+  INTERNSHIP_CONFIRMATION
+  TRANSCRIPT_REQUEST
+  VISA_SUPPORT_LETTER
+  GRADUATION_CONFIRMATION
+}
+
+enum CertificatePurpose {
+  EMPLOYMENT
+  INTERNSHIP
+  VISA_APPLICATION
+  SCHOLARSHIP
+  BANK
+  OTHER
+}
+
+enum DocumentLanguage {
+  KK
+  RU
+  EN
+}
+
+enum RequestStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  AWAITING_SIGNATURE
+  ISSUED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+}
+
+enum DocumentStatus {
+  AWAITING_SIGNATURE
+  ISSUED
+  REVOKED
+}
+
+enum SignatureStatus {
+  // Produced by MockSigningProvider. Never legally valid.
+  MOCK_TEST_ONLY
+  VALID
+  INVALID
+}
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  // Stable ID from the identity provider (Platonus student ID for students).
+  externalUserId String   @map("external_user_id")
+  authProvider   String   @map("auth_provider")
+  email          String?
+  // Staff only. Student names always come from the StudentDataProvider.
+  displayName    String?  @map("display_name")
+  jobTitle       String?  @map("job_title")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  roles             UserRole[]          @relation("UserRoles")
+  assignedRoles     UserRole[]          @relation("RoleAssigner")
+  sessions          Session[]
+  requests          CertificateRequest[]
+  approvals         Approval[]
+  signatures        DocumentSignature[]
+  revokedDocuments  Document[]          @relation("DocumentRevoker")
+  auditLogs         AuditLog[]
+
+  @@unique([authProvider, externalUserId])
+  @@map("users")
+}
+
+model Role {
+  id    Int        @id @default(autoincrement())
+  name  RoleName   @unique
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId       String   @map("user_id") @db.Uuid
+  roleId       Int      @map("role_id")
+  assignedById String?  @map("assigned_by_id") @db.Uuid
+  assignedAt   DateTime @default(now()) @map("assigned_at")
+
+  user       User  @relation("UserRoles", fields: [userId], references: [id], onDelete: Cascade)
+  role       Role  @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  assignedBy User? @relation("RoleAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model Session {
+  id         String   @id @default(uuid()) @db.Uuid
+  // SHA-256 of the cookie value; the raw token is never stored.
+  tokenHash  String   @unique @map("token_hash")
+  csrfToken  String   @map("csrf_token")
+  userId     String   @map("user_id") @db.Uuid
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  expiresAt  DateTime @map("expires_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// Configurable approval chain. certificateType = null is the default chain.
+model WorkflowStep {
+  id              String           @id @default(uuid()) @db.Uuid
+  certificateType CertificateType? @map("certificate_type")
+  stepOrder       Int              @map("step_order")
+  role            RoleName
+  name            String
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  @@unique([certificateType, stepOrder])
+  @@map("workflow_steps")
+}
+
+model CertificateRequest {
+  id               String             @id @default(uuid()) @db.Uuid
+  studentUserId    String             @map("student_user_id") @db.Uuid
+  certificateType  CertificateType    @map("certificate_type")
+  purpose          CertificatePurpose
+  purposeDetails   String?            @map("purpose_details")
+  language         DocumentLanguage   @default(KK)
+  status           RequestStatus      @default(PENDING)
+  // Index into workflowSnapshot of the step waiting for a decision.
+  currentStepIndex Int                @default(0) @map("current_step_index")
+  // Copy of the workflow steps at submission time, so later config changes
+  // do not break requests that are already in progress.
+  workflowSnapshot Json               @map("workflow_snapshot")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  student   User       @relation(fields: [studentUserId], references: [id], onDelete: Restrict)
+  approvals Approval[]
+  document  Document?
+
+  @@index([studentUserId, createdAt])
+  @@index([status])
+  @@map("certificate_requests")
+}
+
+model Approval {
+  id         String           @id @default(uuid()) @db.Uuid
+  requestId  String           @map("request_id") @db.Uuid
+  approverId String           @map("approver_id") @db.Uuid
+  stepIndex  Int              @map("step_index")
+  stepRole   RoleName         @map("step_role")
+  decision   ApprovalDecision
+  comment    String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  request  CertificateRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  approver User               @relation(fields: [approverId], references: [id], onDelete: Restrict)
+
+  // One decision per workflow step.
+  @@unique([requestId, stepIndex])
+  @@index([approverId])
+  @@map("approvals")
+}
+
+model Document {
+  id                String           @id @default(uuid()) @db.Uuid
+  requestId         String           @unique @map("request_id") @db.Uuid
+  documentNumber    String           @unique @map("document_number")
+  // Random UUID v4 printed in the QR code. Never the internal id.
+  verificationToken String           @unique @map("verification_token") @db.Uuid
+  status            DocumentStatus   @default(AWAITING_SIGNATURE)
+  // Unsigned preview PDF, relative to STORAGE_DIR.
+  filePath          String           @map("file_path")
+  language          DocumentLanguage
+  // Academic data used for this document, frozen at preparation time.
+  academicSnapshot  Json             @map("academic_snapshot")
+  // True when signed by the mock provider: TEST / NOT LEGALLY SIGNED.
+  isTest            Boolean          @default(false) @map("is_test")
+  validUntil        DateTime?        @map("valid_until")
+  issuedAt          DateTime?        @map("issued_at")
+  revokedAt         DateTime?        @map("revoked_at")
+  revocationReason  String?          @map("revocation_reason")
+  revokedById       String?          @map("revoked_by_id") @db.Uuid
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  request    CertificateRequest  @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  revokedBy  User?               @relation("DocumentRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
+  signatures DocumentSignature[]
+
+  @@index([status])
+  @@map("documents")
+}
+
+model DocumentSignature {
+  id                   String          @id @default(uuid()) @db.Uuid
+  documentId           String          @map("document_id") @db.Uuid
+  signerId             String          @map("signer_id") @db.Uuid
+  provider             String
+  certificateSerial    String?         @map("certificate_serial")
+  signedFilePath       String          @map("signed_file_path")
+  signatureStatus      SignatureStatus @map("signature_status")
+  verificationMetadata Json?           @map("verification_metadata")
+  signedAt             DateTime        @default(now()) @map("signed_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  signer   User     @relation(fields: [signerId], references: [id], onDelete: Restrict)
+
+  @@index([documentId])
+  @@map("document_signatures")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@map("audit_logs")
+}
