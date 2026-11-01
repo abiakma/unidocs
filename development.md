@@ -36,9 +36,8 @@ Environment Variables
 
 Example:
 
-DATABASE_URL=postgresql://user:password@localhost:5432/unidocs
-PORT=3000
-JWT_SECRET=your_secret
+All variables are listed in .env.example. Copy it to .env (and apps/api/.env) and change the passwords.
+Sessions are stored server-side, so there is no JWT secret. See docs/deployment.md for the full setup.
 
 Real passwords and secrets must never be uploaded to GitHub.
 
