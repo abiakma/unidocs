@@ -1,4 +1,4 @@
-# UniDocs — AHEU Certificate Management System
+# UniDocs AHEU Certificate Management System
 
 UniDocs lets students of the Almaty Humanitarian-Economic University (AHEU) request official certificates online. University staff review, approve and digitally sign them, and anyone can check a certificate's authenticity by scanning its unique QR code.
 
