@@ -6,7 +6,7 @@
 
 | Artifact | Location |
 | --- | --- |
-| Visual ERD (Crow's Foot) | [`docs/erd.pdf`](erd.pdf) · [`docs/erd.png`](erd.png) · editable source [`docs/erd.svg`](erd.svg) |
+| Visual ERD (Crow's Foot) | [`docs/updated-erd.pdf`](updated-erd.pdf) · [`docs/erd.png`](erd.png) · editable source [`docs/erd.svg`](erd.svg) |
 | Entity tables, relationships, justification | this file |
 | Executable ORM schema | [`apps/api/prisma/schema.prisma`](../apps/api/prisma/schema.prisma) |
 | Generated SQL (DDL) | [`apps/api/prisma/migrations/20261101123000_init/migration.sql`](../apps/api/prisma/migrations/20261101123000_init/migration.sql) |
@@ -54,7 +54,7 @@ The schema has **10 tables** grouped by concern:
 
 ![UniDocs ERD](erd.png)
 
-Notation: Crow's Foot. `‖` exactly one · `o|` zero or one · `o<` zero or many. Badges: **PK** primary key, **FK** foreign key, **UK** unique, **UK\*** member of a composite unique key. Each relationship line is labelled with its `ON DELETE` rule. The full-resolution version is [`erd.pdf`](erd.pdf).
+Notation: Crow's Foot. `‖` exactly one · `o|` zero or one · `o<` zero or many. Badges: **PK** primary key, **FK** foreign key, **UK** unique, **UK\*** member of a composite unique key. Each relationship line is labelled with its `ON DELETE` rule. The full-resolution version is [`updated-erd.pdf`](updated-erd.pdf).
 
 ---
 

@@ -61,7 +61,7 @@ PostgreSQL 17 managed with Prisma 7. Schema: [`apps/api/prisma/schema.prisma`](a
 
 Design documentation (Assignment 2):
 
-- ERD (Crow's Foot): [`docs/erd.pdf`](docs/erd.pdf) / [`docs/erd.png`](docs/erd.png)
+- ERD (Crow's Foot): [`docs/updated-erd.pdf`](docs/updated-erd.pdf) / [`docs/erd.png`](docs/erd.png)
 - Entity tables, relationships, cascade rules, 3NF and indexing justification: [`docs/database-schema.md`](docs/database-schema.md)
 
 ## Documentation
