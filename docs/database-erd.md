@@ -1,6 +1,6 @@
 # Database
 
-> Full specification (attribute tables, cardinality, cascade rules, 3NF and indexing justification): [database-schema.md](database-schema.md). Crow's Foot diagram: [erd.pdf](erd.pdf).
+> Full specification (attribute tables, cardinality, cascade rules, 3NF and indexing justification): [database-schema.md](database-schema.md). Crow's Foot diagram: [updated-erd.pdf](updated-erd.pdf).
 
 PostgreSQL, managed with Prisma 7. Schema: [`apps/api/prisma/schema.prisma`](../apps/api/prisma/schema.prisma). Migrations: [`apps/api/prisma/migrations`](../apps/api/prisma/migrations).
 
