@@ -64,6 +64,12 @@ Design documentation (Assignment 2):
 - ERD (Crow's Foot): [`docs/erd.pdf`](docs/erd.pdf) / [`docs/erd.png`](docs/erd.png)
 - Entity tables, relationships, cascade rules, 3NF and indexing justification: [`docs/database-schema.md`](docs/database-schema.md)
 
+System analysis and UML (Assignment 3):
+
+- System Requirements Specification (personas, FRs, NFRs): [`docs/specifications.md`](docs/specifications.md)
+- Behavioral UML (use case, activity, state machine): [`docs/diagrams/behavioral/`](docs/diagrams/behavioral/)
+- Structural UML (CRC cards, class, sequence): [`docs/diagrams/structural/`](docs/diagrams/structural/)
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)
@@ -76,4 +82,4 @@ Design documentation (Assignment 2):
 - [QR verification](docs/qr-verification.md)
 - [Deployment](docs/deployment.md)
 
-Project rules for contributors and AI tools: [agents.md](agents.md), [development.md](development.md), [specifications.md](specifications.md).
+Project rules for contributors and AI tools: [agents.md](agents.md), [development.md](development.md), [docs/specifications.md](docs/specifications.md).

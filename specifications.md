@@ -1,3 +1,5 @@
+> **Superseded.** This was the initial project brief. The current System Requirements Specification is [docs/specifications.md](docs/specifications.md), and the request statuses are described in [docs/approval-workflow.md](docs/approval-workflow.md).
+
 UniDocs Specifications
 Project Problem
 
