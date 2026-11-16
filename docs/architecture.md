@@ -23,9 +23,9 @@ flowchart LR
   Browser -- "/api (same origin)" --> API[NestJS API]
   API --> DB[(PostgreSQL)]
   API --> Files[(STORAGE_DIR: PDFs)]
-  API -. "AuthProvider" .-> SSO[Platonus SSO\n(mock in dev)]
-  API -. "StudentDataProvider" .-> PL[Platonus API\n(mock in dev)]
-  API -. "SigningProvider" .-> EDS[NCALayer / NCA RK\n(mock in dev)]
+  API -. "AuthProvider" .-> SSO["Platonus SSO<br/>(mock in dev)"]
+  API -. "StudentDataProvider" .-> PL["Platonus API<br/>(mock in dev)"]
+  API -. "SigningProvider" .-> EDS["NCALayer / NCA RK<br/>(mock in dev)"]
 ```
 
 The web app calls the API on the same origin (`/api`, proxied by Vite in development and by the reverse proxy in production), so the session cookie stays first-party.

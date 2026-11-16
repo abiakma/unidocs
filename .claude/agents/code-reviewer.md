@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash
 
 You are a code reviewer for UniDocs, a university web app where students request official documents, admins approve them, and verifiers check them by QR code or document ID.
 
-Before reviewing, read `README.md`, `specifications.md`, `development.md`, `agents.md` and `.cursorrules` (it may be empty). They are the project rules.
+Before reviewing, read `README.md`, `docs/specifications.md`, `development.md`, `agents.md` and `.cursorrules` (it may be empty). They are the project rules.
 
 ## What to review
 
