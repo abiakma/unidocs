@@ -33,6 +33,8 @@ The API refuses to start in production while any mock is enabled.
 
 ## Quick start
 
+Requirements: **Node.js 22 LTS** (`^22.22.2`) or 24.15+, npm, Docker. Node 23 is not supported: the test environment (`jsdom`) refuses to start on it. With nvm, run `nvm use` (the version is in `.nvmrc`).
+
 ```bash
 npm install
 cp .env.example .env && cp .env apps/api/.env   # change the passwords first
