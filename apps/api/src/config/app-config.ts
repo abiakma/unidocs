@@ -88,7 +88,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
 
   const config: AppConfig = {
     nodeEnv,
-    port: integer(env, "API_PORT", 3000, 1, 65535),
+    // API_PORT for local development; PORT is set by hosting platforms such as Render.
+    port: integer(env, env.API_PORT?.trim() ? "API_PORT" : "PORT", 3000, 1, 65535),
     databaseUrl: required(env, "DATABASE_URL"),
     webBaseUrl: url(env, "WEB_BASE_URL", "http://localhost:5173"),
     verificationBaseUrl: url(env, "VERIFICATION_BASE_URL", "http://localhost:5173"),
