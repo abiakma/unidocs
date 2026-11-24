@@ -1,6 +1,6 @@
 # UML Diagrams
 
-System analysis models for UniDocs (PED 741, Assignment 3). Requirements they trace to: [System Requirements Specification](../specifications.md).
+UML diagrams and system analysis models for UniDocs. Requirements they trace to: [System Requirements Specification](../specifications.md).
 
 All diagrams are text-based [Mermaid](https://mermaid.js.org/) and render directly on GitHub.
 

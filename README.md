@@ -106,7 +106,7 @@ Design documentation (Assignment 2):
 
 ## Documentation
 
-System analysis and UML (Assignment 3):
+System analysis and UML diagrams:
 
 - [System Requirements Specification (SRS)](docs/specifications.md): problem/solution space, personas, functional and non-functional requirements
 - Behavioral: [Use case diagram + specifications](docs/diagrams/behavioral/use-case-diagram.md) · [Activity diagram](docs/diagrams/behavioral/activity-diagram.md) · [State machines](docs/diagrams/behavioral/state-machine-diagram.md)

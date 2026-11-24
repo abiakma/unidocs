@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Product | UniDocs — AHEU Certificate Management System |
-| Version | 2.0 (Assignment 3) |
+| Version | 2.0 |
 | Scope of this document | Problem and solution space, user personas, functional and non-functional requirements |
 | Related models | [Behavioral diagrams](diagrams/behavioral/) · [Structural diagrams](diagrams/structural/) · [ERD](database-erd.md) |
 
