@@ -1,55 +1,54 @@
-Это Roadmap of the project
+# UniDocs Development Guide
 
-UniDocs Development Guide
-Required Software
+## Required software
 
-The project requires:
+- Node.js 22 LTS (`^22.22.2`) or 24.15+. The exact version is in `.nvmrc`; run `nvm use`.
+- npm
+- Docker (for the local PostgreSQL database)
+- Git
+- VS Code, Cursor or another editor
 
-Node.js 20+
-npm
-Git
-PostgreSQL
-VS Code or Cursor
-Frontend
+## Technology
 
-The frontend will use:
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Backend | Node.js, NestJS, TypeScript, REST API, ES Modules |
+| Database | PostgreSQL, Prisma ORM |
 
-React 19
-TypeScript
-Vite
-Tailwind CSS
-Backend
+## Environment variables
 
-The backend will use:
+All variables are listed in `.env.example`. Copy it to `.env` (repository root) and to `apps/api/.env`, then change the passwords.
 
-Node.js
-TypeScript
-REST API
-ES Modules
-Database
+Sessions are stored server-side, so there is no JWT secret. See [docs/deployment.md](docs/deployment.md) for the full setup.
 
-The project will use:
+Never upload real passwords or secrets to GitHub. `.env` files are git-ignored.
 
-PostgreSQL
-Prisma ORM
-Environment Variables
+## Before committing
 
-Example:
+Run all three and make sure they pass:
 
-All variables are listed in .env.example. Copy it to .env (and apps/api/.env) and change the passwords.
-Sessions are stored server-side, so there is no JWT secret. See docs/deployment.md for the full setup.
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
 
-Real passwords and secrets must never be uploaded to GitHub.
+GitHub Actions runs the same checks on every push.
 
-Git
+## Git
 
-The project will use Conventional Commits.
+The project uses [Conventional Commits](https://www.conventionalcommits.org/):
 
-Examples:
-
+```text
 feat: add document request form
-feat: add document verification
 fix: validate student input
+test: add verification tests
 docs: update project documentation
+```
 
-Before committing, the application should be tested.
+Keep commits small: one feature, fix or document per commit.
+
+## AI tools
+
+Rules for AI assistants are in [agents.md](agents.md). How AI was used and checked is described in [docs/ai-usage.md](docs/ai-usage.md).
