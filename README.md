@@ -111,6 +111,7 @@ System analysis and UML (Assignment 3):
 - [System Requirements Specification (SRS)](docs/specifications.md): problem/solution space, personas, functional and non-functional requirements
 - Behavioral: [Use case diagram + specifications](docs/diagrams/behavioral/use-case-diagram.md) · [Activity diagram](docs/diagrams/behavioral/activity-diagram.md) · [State machines](docs/diagrams/behavioral/state-machine-diagram.md)
 - Structural: [CRC cards](docs/diagrams/structural/crc-cards.md) · [Class diagrams](docs/diagrams/structural/class-diagram.md) · [Sequence diagrams](docs/diagrams/structural/sequence-diagram.md)
+- Overview of all diagrams: [docs/diagrams/README.md](docs/diagrams/README.md)
 
 Technical guides:
 
