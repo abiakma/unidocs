@@ -83,7 +83,7 @@ Every push runs the same commands in GitHub Actions ([`.github/workflows/ci.yml`
 - **Single university.** The system is built for AHEU. There is no multi-university data separation, so a system administrator sees all data.
 - **No email or push notifications.** Students follow progress on their dashboard.
 - **Local file storage.** PDFs are saved on the API server's disk (`STORAGE_DIR`), not in object storage, and there is no backup.
-- **Not deployed.** The project runs locally. [`docs/deployment.md`](docs/deployment.md) describes what a real deployment would need.
+- **Public demo runs in development mode.** The optional Render demo ([guide](docs/deployment.md#demo-deployment-on-render-free)) uses mock login, so anyone with the link can act as any fictional user. Its PDFs are lost on restart and its free database expires after 30 days. A real deployment needs the production checklist in [`docs/deployment.md`](docs/deployment.md).
 - **AI does not make decisions.** No AI component approves, signs, revokes or edits academic data. See [`docs/ai-usage.md`](docs/ai-usage.md).
 
 ## Database
