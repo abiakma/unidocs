@@ -99,7 +99,7 @@ PostgreSQL 17 managed with Prisma 7. Schema: [`apps/api/prisma/schema.prisma`](a
 | `npm run db:migrate:dev -w apps/api -- --name <change>` | Create a new migration after editing the schema |
 | `npm run db:down` | Stop the database container (data is kept in a Docker volume) |
 
-Design documentation (Assignment 2):
+Database design:
 
 - ERD (Crow's Foot): [`docs/erd.pdf`](docs/erd.pdf) / [`docs/erd.png`](docs/erd.png)
 - Entity tables, relationships, cascade rules, 3NF and indexing justification: [`docs/database-schema.md`](docs/database-schema.md)
