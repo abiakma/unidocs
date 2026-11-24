@@ -28,6 +28,8 @@ export interface AppConfig {
   sessionTtlHours: number;
   trustProxyHops: number;
   storageDir: string;
+  // Folder with the built web app (apps/web/dist). When set, the API also serves the frontend.
+  webDistDir: string | null;
   certificateValidityDays: number;
   authProvider: AuthProviderKind;
   studentDataProvider: StudentDataProviderKind;
@@ -88,7 +90,8 @@ export function loadConfig(env: Env = process.env): AppConfig {
 
   const config: AppConfig = {
     nodeEnv,
-    port: integer(env, "API_PORT", 3000, 1, 65535),
+    // API_PORT for local development; PORT is set by hosting platforms such as Render.
+    port: integer(env, env.API_PORT?.trim() ? "API_PORT" : "PORT", 3000, 1, 65535),
     databaseUrl: required(env, "DATABASE_URL"),
     webBaseUrl: url(env, "WEB_BASE_URL", "http://localhost:5173"),
     verificationBaseUrl: url(env, "VERIFICATION_BASE_URL", "http://localhost:5173"),
@@ -96,6 +99,7 @@ export function loadConfig(env: Env = process.env): AppConfig {
     sessionTtlHours: integer(env, "SESSION_TTL_HOURS", 8, 1, 72),
     trustProxyHops: integer(env, "TRUST_PROXY_HOPS", 0, 0, 10),
     storageDir: path.resolve(env.STORAGE_DIR?.trim() || "./storage"),
+    webDistDir: env.WEB_DIST_DIR?.trim() ? path.resolve(env.WEB_DIST_DIR.trim()) : null,
     certificateValidityDays: integer(env, "CERTIFICATE_VALIDITY_DAYS", 90, 1, 3650),
     authProvider: oneOf(env, "AUTH_PROVIDER", ["mock", "platonus"], "mock"),
     studentDataProvider: oneOf(env, "STUDENT_DATA_PROVIDER", ["mock", "platonus"], "mock"),

@@ -1,112 +1,111 @@
-# State Machine Diagrams
+# State Machine Diagrams — UniDocs
 
-Transitions are written `event [guard] / action`. Guards are the exact conditions checked by the API (see `apps/api/src/workflow/workflow-rules.ts`, `requests.service.ts`, `documents.service.ts`, `session.service.ts`). A transition whose guard fails leaves the entity in its current state and returns the HTTP error shown in the tables.
+Requirements: FR-AUTH-03…04, FR-REQ, FR-WF, FR-DOC, FR-VER. The states are the real enum values in [`schema.prisma`](../../../apps/api/prisma/schema.prisma). The transition rules are in [`workflow-rules.ts`](../../../apps/api/src/workflow/workflow-rules.ts), [`documents.service.ts`](../../../apps/api/src/documents/documents.service.ts) and [`session.service.ts`](../../../apps/api/src/auth/session.service.ts).
 
-## 1. CertificateRequest lifecycle
+Transition labels use UML syntax: **`event [guard] / action`**. A transition fires only when its guard is true. Every state-changing update is a conditional `UPDATE … WHERE status = <expected>`, so if two users act at the same time only one transition succeeds and the other gets `409`.
 
-Entity `certificate_requests.status` (`RequestStatus`). Requirements FR-REQ-06, FR-WF-02 … FR-WF-06, FR-DOC-01, FR-DOC-04.
+## 1. Certificate request lifecycle
+
+Entity: `CertificateRequest.status` (`RequestStatus`).
 
 ```mermaid
 stateDiagram-v2
-  direction LR
-  [*] --> PENDING: submit [student eligible ∧ open < 5] / snapshot chain, step = 0
+  direction TB
+  [*] --> PENDING : submit [eligible AND open requests below 5] / copy workflow snapshot, currentStepIndex = 0
 
-  state "In review" as Review {
-    direction LR
-    PENDING --> UNDER_REVIEW: approve [hasRole(step) ∧ ¬own ∧ ¬approvedBefore ∧ step+1 < n] / step++
-    UNDER_REVIEW --> UNDER_REVIEW: approve [same guards ∧ step+1 < n] / step++
+  state "Open (waiting for a decision)" as Open {
+    PENDING
+    UNDER_REVIEW
   }
 
-  PENDING --> APPROVED: approve [guards ∧ step+1 = n]
-  UNDER_REVIEW --> APPROVED: approve [guards ∧ step+1 = n]
-  PENDING --> REJECTED: reject [hasRole(step) ∧ ¬own ∧ reason 3–1000]
-  UNDER_REVIEW --> REJECTED: reject [hasRole(step) ∧ ¬own ∧ reason 3–1000]
+  PENDING --> UNDER_REVIEW : approve [canDecide AND current step is not the last] / currentStepIndex + 1
+  UNDER_REVIEW --> UNDER_REVIEW : approve [canDecide AND current step is not the last] / currentStepIndex + 1
+  PENDING --> APPROVED : approve [canDecide AND current step is the last] / currentStepIndex = steps.length
+  UNDER_REVIEW --> APPROVED : approve [canDecide AND current step is the last]
+  PENDING --> REJECTED : reject [canReject AND comment 3..1000 chars]
+  UNDER_REVIEW --> REJECTED : reject [canReject AND comment 3..1000 chars]
 
-  APPROVED --> AWAITING_SIGNATURE: prepare [Platonus reachable ∧ student still eligible] / render PDF, create Document
-  APPROVED --> APPROVED: prepare [Platonus unavailable] / audit failure, retry later
-
-  AWAITING_SIGNATURE --> ISSUED: sign [document AWAITING_SIGNATURE ∧ signature accepted] / set issuedAt, validUntil
+  APPROVED --> AWAITING_SIGNATURE : prepare [Platonus reachable AND student still eligible] / create Document
+  APPROVED --> APPROVED : prepare [Platonus unavailable OR not eligible] / audit DOCUMENT_PREPARATION_FAILED
+  AWAITING_SIGNATURE --> ISSUED : document signed [Document.status = AWAITING_SIGNATURE]
 
   REJECTED --> [*]
   ISSUED --> [*]
 ```
 
-| From | Event | Guard | To | On guard failure |
-| --- | --- | --- | --- | --- |
-| — | `POST /requests` | education status allows type; < 5 open requests | `PENDING` | 422 / 409 |
-| `PENDING`, `UNDER_REVIEW` | approve | actor has current step's role; not own request; actor has not approved another step; status and step unchanged since read | `UNDER_REVIEW` (more steps) or `APPROVED` (last step) | 403 / 409 |
-| `PENDING`, `UNDER_REVIEW` | reject | actor has current step's role; not own request; reason 3–1000 chars | `REJECTED` (final) | 403 / 400 / 409 |
-| `APPROVED` | prepare (automatic after last approval, or manual retry) | student found in Platonus and still eligible | `AWAITING_SIGNATURE` | stays `APPROVED` |
-| `AWAITING_SIGNATURE` | sign | caller is `AUTHORIZED_SIGNER`; document still `AWAITING_SIGNATURE`; signature valid | `ISSUED` (final) | 403 / 409 |
+### Guards
 
-`n` is the number of steps in the request's own workflow snapshot (1–6), not the current configuration.
+| Guard | Exact condition (from `checkCanDecide`) |
+| --- | --- |
+| `canDecide` | status is `PENDING` or `UNDER_REVIEW` **and** the actor is not the requesting student **and** the actor has the role of `steps[currentStepIndex]` **and** the actor has not approved any earlier step of this request (separation of duties). |
+| `canReject` | Same as `canDecide` except the separation-of-duties rule. |
+| *current step is the last* | `currentStepIndex + 1 ≥ steps.length` (see `stateAfterApproval`). |
+| *eligible* | `GRADUATION_CONFIRMATION` → education status `GRADUATED`. Any other type → `ACTIVE`. |
+
+### State table
+
+| State | Meaning | Who acts next | Final? |
+| --- | --- | --- | --- |
+| `PENDING` | Submitted. First step not decided yet. | Role of step 0 | No |
+| `UNDER_REVIEW` | At least one step approved, more remain. | Role of the current step | No |
+| `APPROVED` | All steps approved, PDF not prepared yet. | System, or a signer/admin retry | No |
+| `AWAITING_SIGNATURE` | Preview PDF ready in the signer's queue. | Authorized signer | No |
+| `ISSUED` | Signed. Student can download. | — | Yes |
+| `REJECTED` | Rejected at some step, with a reason. | — | Yes |
+
+> A rejected request is not reopened. The student submits a new one.
 
 ## 2. Document lifecycle
 
-Entity `documents.status` (`DocumentStatus`) plus the derived verification status. Requirements FR-DOC-03 … FR-DOC-06, FR-VER-02, FR-ADM-05.
+Entity: `Document.status` (`DocumentStatus`). `EXPIRED` is **not stored**: it is derived at verification time from `validUntil`, so it is drawn as a sub-state of `ISSUED`.
 
 ```mermaid
 stateDiagram-v2
-  direction LR
-  [*] --> AWAITING_SIGNATURE: prepare / number AHEU-YYYY-NNNNNN, token = UUID v4
+  direction TB
+  [*] --> AWAITING_SIGNATURE : prepareForSigning [request APPROVED AND no document yet] / assign documentNumber, UUID v4 token, render preview PDF
 
-  AWAITING_SIGNATURE --> Issued: sign [role = AUTHORIZED_SIGNER ∧ status = AWAITING_SIGNATURE ∧ signature accepted]
+  AWAITING_SIGNATURE --> ISSUED : sign [actor is AUTHORIZED_SIGNER AND signer has name and job title AND provider allowed in this environment] / render final PDF, store signature, issuedAt = now, validUntil = now + 90 days
 
-  state Issued {
+  state ISSUED {
     direction LR
     [*] --> Valid
-    Valid --> Expired: [now > validUntil]
-    note right of Valid
-      Verification returns VALID only when the
-      provider reports VERIFIED; mock-signed
-      documents return SIGNATURE_NOT_VERIFIED
-    end note
+    Valid --> Expired : time passes [now > validUntil]
   }
 
-  Issued --> REVOKED: revoke [role = SYSTEM_ADMIN ∧ status = ISSUED ∧ reason 5–500] / revokedAt, revokedBy
+  ISSUED --> REVOKED : revoke [actor is SYSTEM_ADMIN AND reason given] / revokedAt = now, revokedBy = actor
   REVOKED --> [*]
 ```
 
-| Stored status | Derived condition | Public verification result |
-| --- | --- | --- |
-| `AWAITING_SIGNATURE` | — | `NOT_FOUND` (unsigned documents are never confirmed) |
-| `REVOKED` | — | `REVOKED` |
-| `ISSUED` | `now > validUntil` | `EXPIRED` |
-| `ISSUED` | signature check = `VERIFIED` | `VALID` |
-| `ISSUED` | signature check = `TEST_ONLY` / `NOT_VERIFIED` | `SIGNATURE_NOT_VERIFIED` |
+### What a verifier sees in each state
 
-`Expired` is a derived sub-state: nothing is written to the database when a certificate expires, the status is computed on every verification (`computeVerificationStatus`). A revoked document stays `REVOKED` even after `validUntil`, because revocation is checked first.
+| Document state | `GET /api/documents/verify/{token}` returns |
+| --- | --- |
+| `AWAITING_SIGNATURE` | `NOT_FOUND` (unsigned documents are invisible to the public) |
+| `ISSUED` › Valid, signature verified | `VALID` |
+| `ISSUED` › Valid, signature not verified or test signature | `SIGNATURE_NOT_VERIFIED` |
+| `ISSUED` › Expired | `EXPIRED` |
+| `REVOKED` | `REVOKED` (wins over `EXPIRED`) |
 
 ## 3. Session lifecycle
 
-Entity `sessions` row plus the login `state` cookie. Requirements FR-AUTH-02 … FR-AUTH-08, FR-ADM-04.
+Entity: `Session` row + `unidocs_sid` cookie.
 
 ```mermaid
 stateDiagram-v2
   direction LR
-  [*] --> Anonymous
-  Anonymous --> AwaitingCallback: GET /auth/login [≤ 20/min per IP] / set state cookie (10 min)
-  AwaitingCallback --> Anonymous: callback [state ≠ cookie ∨ cookie expired] / redirect /login?error=state
-  AwaitingCallback --> Anonymous: callback [identity unknown ∨ user inactive] / redirect /login?error=denied
-  AwaitingCallback --> Active: callback [state = cookie ∧ user active] / create session, hash token, new CSRF token
+  [*] --> LoginStarted : GET /auth/login / set state cookie (10 min)
+  LoginStarted --> Active : callback [state matches AND identity resolved AND user active] / store SHA-256(token), set HttpOnly cookie, expiresAt = now + 8 h
+  LoginStarted --> [*] : callback [state mismatch OR provider error OR account denied] / audit LOGIN_FAILED
 
-  state Active {
-    direction LR
-    [*] --> Idle
-    Idle --> Idle: GET request [token hash found ∧ now < expiresAt]
-    Idle --> Idle: POST/PUT/PATCH/DELETE [X-CSRF-Token = session.csrfToken]
-    Idle --> Idle: POST/PUT/PATCH/DELETE [CSRF missing or wrong] / 403
-  }
-
-  Active --> Ended: POST /auth/logout [CSRF valid] / delete row
-  Active --> Ended: [now ≥ expiresAt] / 401 on next request
-  Active --> Ended: admin deactivates user / delete all user's sessions
-  Ended --> Anonymous
+  Active --> Active : any request [expiresAt > now AND user active] / refresh lastSeenAt
+  Active --> Ended : request [expiresAt ≤ now OR user deactivated] / delete session row, return 401
+  Active --> Ended : POST /auth/logout [valid CSRF token] / delete session row, clear cookie
+  Active --> Ended : admin deactivates user / delete all sessions of the user
+  Ended --> [*]
 ```
 
 | Guard | Where it is checked |
 | --- | --- |
-| `state = cookie` (constant-time compare) | `AuthController.callback` |
-| token hash exists and not expired | `SessionGuard` → `SessionService.resolve` |
-| CSRF header equals session token | `CsrfGuard` (all non-GET methods) |
-| user has the endpoint's role | `RolesGuard` |
+| *state matches* | `AuthController.callback` with constant-time comparison |
+| *expiresAt > now AND user active* | `SessionService.resolve`, called by `SessionGuard` on every request |
+| *valid CSRF token* | `CsrfGuard` for every state-changing method |

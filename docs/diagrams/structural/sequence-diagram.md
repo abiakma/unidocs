@@ -1,213 +1,176 @@
-# UML Sequence Diagrams
+# UML Sequence Diagrams — UniDocs
 
-Chronological HTTP messaging between the browser, the API layers and the database. Solid arrows are calls, dashed arrows are replies. `alt` / `else` frames are mutually exclusive error paths, `opt` frames run only when their guard holds. All three flows run through the same global guard chain; diagram 1 shows it in full, diagrams 2 and 3 collapse it.
+Messages are in chronological order from top to bottom. Solid arrows (`->>`) are calls or HTTP requests, dashed arrows (`-->>`) are responses. `alt` / `else` frames show the success path and every error path with its HTTP status. `opt` frames show optional steps. `critical` marks a database transaction.
 
-Participants:
+Participants map to classes in the [class diagram](class-diagram.md).
 
-| Participant | Code |
-| --- | --- |
-| UI | React page in `apps/web` + `api` client |
-| Gateway | Helmet, `ThrottlerGuard`, `SessionGuard`, `CsrfGuard`, `RolesGuard`, `ValidationPipe` |
-| Controller | `RequestsController`, `StaffController`, `DocumentsController` |
-| Service | `RequestsService`, `DocumentsService` |
-| Platonus | `StudentDataProvider` |
-| DB | PostgreSQL via Prisma |
+## 1. Approve the current workflow step
 
-## 1. `POST /api/requests` — submit a request
-
-Use case UC-02. Requirements FR-AUTH-07/08, FR-REQ-01 … FR-REQ-06.
+Use cases: [UC-06](../behavioral/use-case-diagram.md#uc-06-approve-workflow-step) and, when the last step is approved, [UC-08](../behavioral/use-case-diagram.md#uc-08-prepare-document). Requirements: FR-AUTH-05…07, FR-WF-02, FR-WF-04, FR-WF-05, FR-DOC-01, FR-DOC-02.
 
 ```mermaid
 sequenceDiagram
   autonumber
-  actor S as Student
-  participant UI as React UI
-  participant GW as Gateway (guards + pipes)
-  participant C as RequestsController
-  participant RS as RequestsService
-  participant P as StudentDataProvider
-  participant DB as PostgreSQL
-
-  S->>UI: Fill form, click Submit
-  UI->>UI: Check required fields
-  UI->>GW: POST /api/requests {certificateType, purpose, language}<br/>Cookie: unidocs_sid, X-CSRF-Token
-  activate GW
-  GW->>GW: ThrottlerGuard (120/min per IP)
-  alt rate limit exceeded
-    GW-->>UI: 429 Too Many Requests
-  else no or expired session
-    GW->>DB: SELECT session WHERE token_hash = sha256(cookie)
-    DB-->>GW: none / expired
-    GW-->>UI: 401 Unauthorized
-  else CSRF header missing or wrong
-    GW-->>UI: 403 Forbidden
-  else role is not STUDENT
-    GW-->>UI: 403 Forbidden
-  else body invalid or has unknown fields
-    GW-->>UI: 400 Bad Request {message[]}
-  else all checks pass
-    GW->>C: create(dto, user, ip)
-    deactivate GW
-    activate C
-    C->>RS: create(user, dto, ip)
-    activate RS
-    RS->>P: getStudentAcademicStatus(externalUserId)
-    alt Platonus unavailable
-      P-->>RS: throws ServiceUnavailableException
-      RS-->>C: propagates
-      C-->>UI: 503 Service Unavailable
-    else student not found
-      P-->>RS: null
-      RS-->>C: ForbiddenException
-      C-->>UI: 403 Forbidden
-    else status does not allow type
-      P-->>RS: {educationStatus: ACADEMIC_LEAVE}
-      RS-->>C: UnprocessableEntityException
-      C-->>UI: 422 Unprocessable Entity
-    else eligible
-      P-->>RS: {educationStatus: ACTIVE}
-      RS->>DB: COUNT requests WHERE student AND status IN (open)
-      DB-->>RS: n
-      alt n ≥ 5
-        RS-->>C: ConflictException
-        C-->>UI: 409 Conflict
-      else n < 5
-        RS->>DB: SELECT workflow_steps for type (or default)
-        DB-->>RS: steps[]
-        RS->>DB: BEGIN
-        RS->>DB: INSERT certificate_requests (PENDING, step 0, snapshot)
-        RS->>DB: INSERT audit_logs (request.created)
-        RS->>DB: COMMIT
-        RS-->>C: RequestView
-        deactivate RS
-        C-->>UI: 201 Created {id, status: PENDING, steps}
-        deactivate C
-        UI-->>S: Show request with workflow stepper
-      end
-    end
-  end
-```
-
-## 2. `POST /api/staff/requests/:id/approve` — approve a step
-
-Use case UC-05. Requirements FR-WF-02 … FR-WF-06, FR-DOC-01, FR-DOC-02.
-
-```mermaid
-sequenceDiagram
-  autonumber
-  actor A as Accountant
-  participant UI as React UI
-  participant GW as Gateway
-  participant C as StaffController
+  actor Staff as Staff member
+  participant SPA as React SPA
+  participant GW as Gateway<br/>(Throttler, Session, CSRF, Roles guards)
+  participant SC as StaffController
   participant RS as RequestsService
   participant WR as WorkflowRules
+  participant DB as PostgreSQL<br/>(Prisma)
   participant DS as DocumentsService
-  participant DB as PostgreSQL
+  participant PL as Platonus API
 
-  A->>UI: Click Approve (optional comment)
-  UI->>GW: POST /api/staff/requests/{id}/approve {comment}
-  alt guards fail (session / CSRF / staff role / UUID)
-    GW-->>UI: 401 / 403 / 400
-  else guards pass
-    GW->>C: approve(id, dto, user)
-    C->>RS: approve(id, user, comment, ip)
-    activate RS
-    RS->>DB: BEGIN
-    RS->>DB: SELECT request + approvals WHERE id
-    alt request not found
-      DB-->>RS: null
-      RS->>DB: ROLLBACK
-      RS-->>UI: 404 Not Found
-    else found
-      DB-->>RS: request {status, currentStepIndex, snapshot, approvals}
-      RS->>WR: checkCanDecide(request, actor, previousApproverIds)
-      alt not allowed (NOT_ACTIONABLE / WRONG_ROLE / OWN_REQUEST / ALREADY_DECIDED_BY_USER)
-        WR-->>RS: {allowed: false, reason}
-        RS->>DB: ROLLBACK
-        RS-->>UI: 403 Forbidden {reason}
-      else allowed
-        WR-->>RS: {allowed: true, step}
-        RS->>WR: stateAfterApproval(steps, currentStepIndex)
-        WR-->>RS: {status, currentStepIndex}
-        RS->>DB: UPDATE request SET next state<br/>WHERE id AND status AND step unchanged
-        alt 0 rows updated (another user decided first)
-          DB-->>RS: count = 0
-          RS->>DB: ROLLBACK
-          RS-->>UI: 409 Conflict "reload and try again"
-        else 1 row updated
-          DB-->>RS: count = 1
-          RS->>DB: INSERT approvals (APPROVED, step)
-          RS->>DB: INSERT audit_logs (request.approved)
-          RS->>DB: COMMIT
-          opt new status = APPROVED (last step)
-            RS->>DS: prepareForSigning(id, actorId, ip)
-            alt Platonus down or student no longer eligible
-              DS-->>RS: throws
-              RS->>DB: INSERT audit_logs (document.preparation_failed)
-              Note over RS: Request stays APPROVED,<br/>signer can retry
-            else prepared
-              DS->>DB: UPDATE request → AWAITING_SIGNATURE,<br/>INSERT documents (number, token)
-              DS-->>RS: documentId
-            end
+  Staff->>SPA: Click "Approve" (optional comment)
+  SPA->>GW: POST /api/staff/requests/{id}/approve<br/>Cookie: unidocs_sid, X-CSRF-Token, body {comment}
+
+  alt more than 120 requests per minute
+    GW-->>SPA: 429 Too Many Requests
+  else no valid session
+    GW-->>SPA: 401 Unauthorized
+  else CSRF token missing or wrong
+    GW-->>SPA: 403 Invalid or missing CSRF token
+  else role is not SPECIALIST, ACCOUNTANT or AUTHORIZED_SIGNER
+    GW-->>SPA: 403 Forbidden
+  else id is not a UUID v4 or comment is invalid
+    GW-->>SPA: 400 Bad Request
+  else request passes the gateway
+    GW->>SC: approve(id, body, user, req)
+    SC->>RS: approve(id, user, comment, ip)
+
+    critical one database transaction
+      RS->>DB: SELECT request WITH approvals WHERE id
+      DB-->>RS: request or null
+      alt request not found
+        RS-->>SC: throw NotFoundException
+        SC-->>GW: 404 Request not found
+        GW-->>SPA: 404
+      else request found
+        RS->>WR: checkCanDecide(state, actor, previousApproverIds)
+        WR-->>RS: DecisionCheck
+        alt not allowed (not open, wrong role, own request, already approved a step)
+          RS-->>SC: throw ForbiddenException(reason)
+          SC-->>GW: 403 + reason
+          GW-->>SPA: 403
+        else allowed
+          RS->>WR: stateAfterApproval(steps, currentStepIndex)
+          WR-->>RS: next status and step index
+          RS->>DB: UPDATE request SET next WHERE id AND status AND currentStepIndex unchanged
+          DB-->>RS: count
+          alt count is not 1 (someone decided first)
+            RS-->>SC: throw ConflictException
+            SC-->>GW: 409 Changed by someone else
+            GW-->>SPA: 409
+          else updated
+            RS->>DB: INSERT approval (APPROVED)
+            RS->>DB: INSERT audit_log REQUEST_APPROVED
+            DB-->>RS: COMMIT
           end
-          RS-->>C: RequestView
-          deactivate RS
-          C-->>UI: 200 OK {status: UNDER_REVIEW | APPROVED | AWAITING_SIGNATURE}
-          UI-->>A: Remove from queue, show toast
         end
       end
     end
+
+    opt new status is APPROVED (the last step was approved)
+      RS->>DS: prepareForSigning(requestId, actorId, ip)
+      DS->>PL: GET student profile by external ID (timeout 5 s)
+      alt Platonus returns the profile and the student is still eligible
+        PL-->>DS: 200 StudentAcademicProfile
+        DS->>DS: freeze snapshot, next document number,<br/>random UUID v4 token, render preview PDF + QR
+        DS->>DB: UPDATE request SET AWAITING_SIGNATURE<br/>INSERT document, INSERT audit_log (one transaction)
+        DB-->>DS: COMMIT
+        DS-->>RS: documentId
+      else Platonus unavailable, timeout, or student no longer eligible
+        PL-->>DS: 503 / timeout / not eligible
+        DS-->>RS: throw error
+        RS->>DB: INSERT audit_log DOCUMENT_PREPARATION_FAILED
+        Note over RS,DB: Request stays APPROVED. The signer can retry with<br/>POST /api/documents/requests/{id}/prepare
+      end
+    end
+
+    RS->>DB: SELECT updated request
+    DB-->>RS: request
+    RS-->>SC: RequestView
+    SC-->>GW: 200 OK + RequestView
+    GW-->>SPA: 200 OK
+    SPA-->>Staff: Show toast and the updated progress bar
+  end
+
+  opt any error response
+    SPA-->>Staff: Show the translated error message
   end
 ```
 
-## 3. `GET /api/documents/verify/:token` — public verification
+What this shows:
 
-Use case UC-07. Requirements FR-VER-01 … FR-VER-05.
+- **Gateway errors** (`429`, `401`, `403`, `400`) are returned before any business code runs.
+- **Business errors** (`404`, `403`, `409`) are raised inside the transaction, so nothing is written when they happen.
+- **A Platonus failure does not fail the approval.** The approval is already committed and the response is still `200`. Only document preparation is postponed (NFR-AVL-04).
+
+## 2. Public QR verification
+
+Use case: [UC-11](../behavioral/use-case-diagram.md#uc-11-verify-certificate). Requirements: FR-VER-01…05.
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor V as Verifier
-  participant UI as Verify page
-  participant GW as Gateway
-  participant C as DocumentsController
+  participant Web as Verify page (SPA)
+  participant GW as Gateway<br/>(Throttler, SessionGuard)
+  participant DC as DocumentsController
   participant DS as DocumentsService
-  participant SP as SigningProvider
+  participant VR as VerificationRules
   participant DB as PostgreSQL
+  participant SP as SigningProvider
+  participant FS as StorageService
 
-  V->>UI: Scan QR → open /verify/{token}
-  UI->>GW: GET /api/documents/verify/{token} (no cookie needed)
-  alt more than 30 requests/min from this IP
-    GW-->>UI: 429 Too Many Requests
-    UI-->>V: "Too many checks, try again later"
-  else within limit (@Public route)
-    GW->>C: verify(token)
-    C->>DS: verify(token)
+  V->>Web: Scan QR code, open /verify/{token}
+  Web->>GW: GET /api/documents/verify/{token} (no cookie)
+
+  alt more than 30 checks per minute from this client
+    GW-->>Web: 429 Too Many Requests
+    Web-->>V: "Too many checks, try again in a minute"
+  else allowed (route is @Public, no session needed)
+    GW->>DC: verify(token)
+    DC->>DS: verify(token.slice(0, 64))
+    DS->>VR: isVerificationTokenFormat(token)
+    VR-->>DS: boolean
+
     alt token is not a UUID v4
-      DS-->>UI: 200 {status: NOT_FOUND}
-    else well-formed
-      DS->>DB: SELECT document + request + latest signature WHERE verification_token
-      alt no document or no signature yet
-        DB-->>DS: null
-        DS-->>UI: 200 {status: NOT_FOUND, document: null}
+      DS-->>DC: {status: NOT_FOUND, document: null}
+    else valid format
+      DS->>DB: SELECT document WHERE verificationToken WITH latest signature
+      DB-->>DS: document or null
+      alt no document, or document not signed yet
+        DS-->>DC: {status: NOT_FOUND, document: null}
       else signed document found
-        DB-->>DS: document, signature
-        DS->>SP: verify(signedPdf, signatureStatus, certificateSerial)<br/>(provider that created the signature)
-        SP-->>DS: VERIFIED | NOT_VERIFIED | TEST_ONLY
-        DS->>DS: computeVerificationStatus(status, validUntil, signatureCheck, now)
-        alt document still AWAITING_SIGNATURE
-          DS-->>UI: 200 {status: NOT_FOUND}
-        else REVOKED
-          DS-->>UI: 200 {status: REVOKED, document {revokedAt, …}}
-        else ISSUED and now > validUntil
-          DS-->>UI: 200 {status: EXPIRED, document {validUntil, …}}
-        else ISSUED and signatureCheck = VERIFIED
-          DS-->>UI: 200 {status: VALID, document {signatureCheck: VERIFIED}}
-        else ISSUED, TEST_ONLY or NOT_VERIFIED (all mock-signed documents)
-          DS-->>UI: 200 {status: SIGNATURE_NOT_VERIFIED, document {isTestDocument: true}}
+        alt signature stored as INVALID or provider unknown
+          DS->>DS: signatureCheck = NOT_VERIFIED
+        else signature stored as MOCK_TEST_ONLY
+          DS->>DS: signatureCheck = TEST_ONLY
+        else signature stored as VALID
+          DS->>FS: read(signedFilePath)
+          FS-->>DS: signed PDF bytes
+          DS->>SP: verify(signatureStatus, signedPdf, certificateSerial)
+          alt cryptographic check succeeds
+            SP-->>DS: VERIFIED
+          else check fails or throws
+            SP-->>DS: NOT_VERIFIED
+          end
         end
+        DS->>VR: computeVerificationStatus(documentStatus, validUntil, signatureCheck, now)
+        VR-->>DS: REVOKED, EXPIRED, VALID or SIGNATURE_NOT_VERIFIED
+        DS-->>DC: {status, document: number, type, dates, signer job title, isTest}
       end
     end
-    UI-->>V: Number, type, dates, signer designation, status<br/>(no student name, IIN or grades)
+
+    DC-->>GW: 200 OK (Cache-Control: no-store)
+    GW-->>Web: 200 OK + VerificationResult
+    Web-->>V: Status badge, document details, TEST warning if isTest
   end
 ```
+
+What this shows:
+
+- The endpoint **always answers `200`** with a status, except for rate limiting. An unknown token is a normal `NOT_FOUND` result, not an HTTP error, so probing tokens gives no extra information.
+- The order of the checks in `computeVerificationStatus` gives the precedence **revoked → expired → signature** (FR-VER-02).
+- The response contains **no student personal data** (FR-VER-03).

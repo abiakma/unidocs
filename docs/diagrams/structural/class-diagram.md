@@ -1,126 +1,150 @@
-# UML Class Diagrams
+# UML Class Diagrams — UniDocs
 
-Two views of the same system:
+Responsibilities of every class: [CRC cards](crc-cards.md). Table-level detail (column names, indexes, `ON DELETE` rules): [database-schema.md](../../database-schema.md).
 
-1. **Domain model**: the persistent entities (Prisma models in `apps/api/prisma/schema.prisma`) with typed attributes and exact multiplicities.
-2. **Service layer**: the classes and interfaces that implement the behaviour (`apps/api/src`), with visibility and method signatures.
+Notation:
 
-Notation: `+` public, `-` private, `#` protected; `?` marks a nullable type; `$` marks a static member. Multiplicities are written at both ends of each association (`1`, `0..1`, `0..*`, `1..*`, `1..6`).
+- **Visibility:** `+` public, `-` private, `#` protected.
+- **Attributes:** `name: Type`. `Type?` means optional (multiplicity `0..1`, nullable column).
+- **Methods:** `name(param: Type) ReturnType`. `Promise~T~` is `Promise<T>`.
+- **Multiplicities** are written at both ends of every association: `1`, `0..1`, `0..*`, `1..*`, `1..6`.
+- **Arrows:** `*--` composition (the part is deleted with the whole), `-->` association, `..>` dependency, `<|..` realization (class implements interface).
 
-## 1. Domain model
+## 1. Domain model (persistent entities)
+
+Entities are Prisma models, so their attributes are private fields read through the generated client. Entities have no behaviour of their own: state changes are done by the services in section 2.
 
 ```mermaid
 classDiagram
   direction LR
 
   class User {
-    +id: UUID
-    +externalUserId: string
-    +authProvider: string
-    +email: string?
-    +displayName: string?
-    +jobTitle: string?
-    +isActive: boolean
-    +createdAt: DateTime
-    +updatedAt: DateTime
+    -id: UUID
+    -externalUserId: string
+    -authProvider: string
+    -email: string?
+    -displayName: string?
+    -jobTitle: string?
+    -isActive: boolean
+    -createdAt: DateTime
+    -updatedAt: DateTime
   }
 
   class Role {
-    +id: int
-    +name: RoleName
+    -id: int
+    -name: RoleName
   }
 
   class UserRole {
-    +userId: UUID
-    +roleId: int
-    +assignedById: UUID?
-    +assignedAt: DateTime
+    -userId: UUID
+    -roleId: int
+    -assignedById: UUID?
+    -assignedAt: DateTime
   }
 
   class Session {
-    +id: UUID
+    -id: UUID
     -tokenHash: string
     -csrfToken: string
-    +userId: UUID
-    +ipAddress: string?
-    +userAgent: string?
-    +expiresAt: DateTime
-    +lastSeenAt: DateTime
-    +createdAt: DateTime
+    -userId: UUID
+    -ipAddress: string?
+    -userAgent: string?
+    -expiresAt: DateTime
+    -lastSeenAt: DateTime
+    -createdAt: DateTime
   }
 
   class WorkflowStep {
-    +id: UUID
-    +certificateType: CertificateType?
-    +stepOrder: int
-    +role: RoleName
-    +name: string
-    +createdAt: DateTime
+    -id: UUID
+    -certificateType: CertificateType?
+    -stepOrder: int
+    -role: RoleName
+    -name: string
+    -createdAt: DateTime
   }
 
   class CertificateRequest {
-    +id: UUID
-    +studentUserId: UUID
-    +certificateType: CertificateType
-    +purpose: CertificatePurpose
-    +purposeDetails: string?
-    +language: DocumentLanguage
-    +status: RequestStatus
-    +currentStepIndex: int
-    +workflowSnapshot: WorkflowStepSnapshot[1..6]
-    +createdAt: DateTime
-    +updatedAt: DateTime
+    -id: UUID
+    -studentUserId: UUID
+    -certificateType: CertificateType
+    -purpose: CertificatePurpose
+    -purposeDetails: string?
+    -language: DocumentLanguage
+    -status: RequestStatus
+    -currentStepIndex: int
+    -workflowSnapshot: Json
+    -createdAt: DateTime
+    -updatedAt: DateTime
   }
 
   class Approval {
-    +id: UUID
-    +requestId: UUID
-    +approverId: UUID
-    +stepIndex: int
-    +stepRole: RoleName
-    +decision: ApprovalDecision
-    +comment: string?
-    +createdAt: DateTime
+    -id: UUID
+    -requestId: UUID
+    -approverId: UUID
+    -stepIndex: int
+    -stepRole: RoleName
+    -decision: ApprovalDecision
+    -comment: string?
+    -createdAt: DateTime
   }
 
   class Document {
-    +id: UUID
-    +requestId: UUID
-    +documentNumber: string
+    -id: UUID
+    -requestId: UUID
+    -documentNumber: string
     -verificationToken: UUID
-    +status: DocumentStatus
+    -status: DocumentStatus
     -filePath: string
-    +language: DocumentLanguage
-    -academicSnapshot: AcademicSnapshot
-    +isTest: boolean
-    +validUntil: DateTime?
-    +issuedAt: DateTime?
-    +revokedAt: DateTime?
-    +revocationReason: string?
-    +revokedById: UUID?
+    -language: DocumentLanguage
+    -academicSnapshot: Json
+    -isTest: boolean
+    -validUntil: DateTime?
+    -issuedAt: DateTime?
+    -revokedAt: DateTime?
+    -revocationReason: string?
+    -revokedById: UUID?
+    -createdAt: DateTime
+    -updatedAt: DateTime
   }
 
   class DocumentSignature {
-    +id: UUID
-    +documentId: UUID
-    +signerId: UUID
-    +provider: string
-    +certificateSerial: string?
+    -id: UUID
+    -documentId: UUID
+    -signerId: UUID
+    -provider: string
+    -certificateSerial: string?
     -signedFilePath: string
-    +signatureStatus: SignatureStatus
-    +verificationMetadata: Json?
-    +signedAt: DateTime
+    -signatureStatus: SignatureStatus
+    -verificationMetadata: Json?
+    -signedAt: DateTime
   }
 
   class AuditLog {
-    +id: UUID
-    +userId: UUID?
-    +action: string
-    +entityType: string
-    +entityId: string?
-    +metadata: Json?
-    +ipAddress: string?
-    +createdAt: DateTime
+    -id: UUID
+    -userId: UUID?
+    -action: string
+    -entityType: string
+    -entityId: string?
+    -metadata: Json?
+    -ipAddress: string?
+    -createdAt: DateTime
+  }
+
+  class RequestStatus {
+    <<enumeration>>
+    PENDING
+    UNDER_REVIEW
+    APPROVED
+    REJECTED
+    AWAITING_SIGNATURE
+    ISSUED
+  }
+
+  class DocumentStatus {
+    <<enumeration>>
+    AWAITING_SIGNATURE
+    ISSUED
+    REVOKED
   }
 
   class RoleName {
@@ -131,63 +155,38 @@ classDiagram
     AUTHORIZED_SIGNER
     SYSTEM_ADMIN
   }
-  class RequestStatus {
-    <<enumeration>>
-    PENDING
-    UNDER_REVIEW
-    APPROVED
-    REJECTED
-    AWAITING_SIGNATURE
-    ISSUED
-  }
-  class DocumentStatus {
-    <<enumeration>>
-    AWAITING_SIGNATURE
-    ISSUED
-    REVOKED
-  }
-  class SignatureStatus {
-    <<enumeration>>
-    MOCK_TEST_ONLY
-    VALID
-    INVALID
-  }
 
-  User "1" *-- "1..*" UserRole : holds
-  Role "1" <-- "0..*" UserRole : grants
-  User "0..1" <-- "0..*" UserRole : assignedBy
-  User "1" *-- "0..*" Session : owns
-  User "1" <-- "0..*" CertificateRequest : submittedBy
-  CertificateRequest "1" *-- "0..6" Approval : receives
-  User "1" <-- "0..*" Approval : decidedBy
-  CertificateRequest "1" -- "0..1" Document : produces
-  Document "1" o-- "0..*" DocumentSignature : signedWith
-  User "1" <-- "0..*" DocumentSignature : signer
-  User "0..1" <-- "0..*" Document : revokedBy
-  User "0..1" <-- "0..*" AuditLog : actor
+  User "1" *-- "0..*" UserRole : has
+  Role "1" --> "0..*" UserRole : granted as
+  User "0..1" --> "0..*" UserRole : assigned by
+  User "1" *-- "0..*" Session : logs in with
+  User "1" --> "0..*" CertificateRequest : submits
+  CertificateRequest "1" *-- "0..*" Approval : records decisions
+  User "1" --> "0..*" Approval : decides
+  CertificateRequest "1" --> "0..1" Document : produces
+  Document "1" --> "0..*" DocumentSignature : signed by
+  User "1" --> "0..*" DocumentSignature : signs
+  User "0..1" --> "0..*" Document : revokes
+  User "0..1" --> "0..*" AuditLog : performs
+  CertificateRequest ..> WorkflowStep : copies 1..6 steps into workflowSnapshot
 
-  Role ..> RoleName
   CertificateRequest ..> RequestStatus
   Document ..> DocumentStatus
-  DocumentSignature ..> SignatureStatus
+  Role ..> RoleName
 ```
 
-### Multiplicities explained
+Multiplicity notes:
 
-| Association | Multiplicity | Enforced by |
-| --- | --- | --- |
-| User — UserRole | 1 to 1..* | Students get `STUDENT` on creation; admin endpoints reject an empty role list. Composition: role grants are deleted with the user (`onDelete: Cascade`) |
-| Role — UserRole | 1 to 0..* | FK `role_id`, `RESTRICT` |
-| User — Session | 1 to 0..* | FK `user_id`, `CASCADE` |
-| User — CertificateRequest | 1 to 0..* | FK `student_user_id`, `RESTRICT` |
-| CertificateRequest — Approval | 1 to 0..6 | Unique `(request_id, step_index)`; chain has at most 6 steps |
-| CertificateRequest — Document | 1 to 0..1 | Unique `documents.request_id` |
-| Document — DocumentSignature | 1 to 0..* | FK `document_id`, `RESTRICT` (one signature in practice; history allowed) |
-| User — AuditLog | 0..1 to 0..* | FK `user_id`, `SET NULL` (system actions have no actor) |
+- **User 1 — 0..* CertificateRequest.** Only users with the `STUDENT` role submit requests. A student has **at most 5** requests in progress (FR-REQ-03). That limit is enforced by `RequestsService`, not by the schema.
+- **CertificateRequest 1 — 0..* Approval.** At most one approval per step: unique key `(requestId, stepIndex)`. A chain has 1–6 steps, so in practice it is `0..6`.
+- **CertificateRequest 1 — 0..1 Document.** `Document.requestId` is unique: one certificate per request.
+- **Composition** (`*--`) marks the `ON DELETE CASCADE` relations: a user's roles and sessions, and a request's approvals.
 
-`WorkflowStep` has no association: requests copy the chain into `workflowSnapshot` at submission so configuration changes never affect requests in progress.
+Enumerations not drawn to keep the diagram readable: `CertificateType` (6 values), `CertificatePurpose` (6), `DocumentLanguage` (KK, RU, EN), `ApprovalDecision` (APPROVED, REJECTED), `SignatureStatus` (MOCK_TEST_ONLY, VALID, INVALID). See [`schema.prisma`](../../../apps/api/prisma/schema.prisma).
 
-## 2. Service layer
+## 2. Application layer (services, rules, providers)
+
+Signatures are copied from the TypeScript source. `ip` stands for the `ipAddress: string | null` parameter that most write methods take for the audit log.
 
 ```mermaid
 classDiagram
@@ -195,53 +194,49 @@ classDiagram
 
   class RequestsController {
     -requests: RequestsService
-    +create(user: AuthContext, dto: CreateRequestDto, ip: string) Promise~RequestView~
+    +create(dto: CreateRequestDto, user: AuthContext, req: AppRequest) Promise~RequestView~
     +my(user: AuthContext) Promise~RequestView[]~
-    +get(id: UUID, user: AuthContext) Promise~RequestView~
+    +get(id: string, user: AuthContext) Promise~RequestView~
   }
 
   class StaffController {
     -requests: RequestsService
     -students: StudentDataProvider
     +list(user: AuthContext) Promise~StaffRequestView[]~
-    +details(id: UUID, user: AuthContext) Promise~StaffRequestDetails~
-    +approve(id: UUID, dto: ApproveDto, user: AuthContext) Promise~RequestView~
-    +reject(id: UUID, dto: RejectDto, user: AuthContext) Promise~RequestView~
+    +details(id: string, user: AuthContext) Promise~StaffRequestDetails~
+    +approve(id: string, body: ApproveRequestDto, user: AuthContext, req: AppRequest) Promise~RequestView~
+    +reject(id: string, body: RejectRequestDto, user: AuthContext, req: AppRequest) Promise~RequestView~
   }
 
   class DocumentsController {
     -documents: DocumentsService
+    -prisma: PrismaService
+    -signing: SigningProviders
     +my(user: AuthContext) Promise~DocumentSummary[]~
     +signingQueue() Promise~SigningQueue~
-    +prepare(requestId: UUID, user: AuthContext) Promise~DocumentSummary~
-    +sign(id: UUID, dto: SignDto, user: AuthContext) Promise~DocumentSummary~
-    +download(id: UUID, user: AuthContext, res: Response) Promise~void~
+    +prepare(requestId: string, user: AuthContext, req: AppRequest) Promise~DocumentSummary~
+    +download(id: string, inline: string?, user: AuthContext, req: AppRequest, res: Response) Promise~StreamableFile~
+    +sign(id: string, body: SignDocumentDto, user: AuthContext, req: AppRequest) Promise~DocumentSummary~
     +verify(token: string) Promise~VerificationResult~
   }
 
   class RequestsService {
-    +MAX_OPEN_REQUESTS_PER_STUDENT$: int = 5
+    -logger: Logger
     -prisma: PrismaService
-    -workflow: WorkflowService
-    -students: StudentDataProvider
-    -documents: DocumentsService
     -audit: AuditService
+    -workflow: WorkflowService
+    -documents: DocumentsService
+    -students: StudentDataProvider
     +create(student: AuthContext, dto: CreateRequestDto, ip: string?) Promise~RequestView~
-    +listMine(studentUserId: UUID) Promise~RequestView[]~
-    +getForUser(id: UUID, user: AuthContext) Promise~RequestView~
+    +listMine(studentUserId: string) Promise~RequestView[]~
+    +getForUser(id: string, user: AuthContext) Promise~RequestView~
     +listActionable(user: AuthContext) Promise~StaffRequestView[]~
     +listAll(status: RequestStatus?) Promise~StaffRequestView[]~
-    +approve(id: UUID, user: AuthContext, comment: string?, ip: string?) Promise~RequestView~
-    +reject(id: UUID, user: AuthContext, comment: string, ip: string?) Promise~RequestView~
-    -tryPrepareDocument(requestId: UUID, actorId: UUID, ip: string?) Promise~void~
-  }
-
-  class WorkflowRules {
-    <<module>>
-    +checkCanDecide(request: WorkflowRequestState, actor: WorkflowActor, previousApproverIds: UUID[]) DecisionCheck
-    +stateAfterApproval(steps: WorkflowStepSnapshot[], currentStepIndex: int) NextState
-    +validateWorkflowSteps(steps: WorkflowStepSnapshot[]) string?
-    +parseWorkflowSnapshot(value: unknown) WorkflowStepSnapshot[]
+    +approve(id: string, user: AuthContext, comment: string?, ip: string?) Promise~RequestView~
+    +reject(id: string, user: AuthContext, comment: string, ip: string?) Promise~RequestView~
+    -tryPrepareDocument(requestId: string, actorId: string, ip: string?) Promise~void~
+    -withStudentNames(requests: RequestWithRelations[]) Promise~StaffRequestView[]~
+    -studentNames(externalIds: string[]) Promise~Map~
   }
 
   class WorkflowService {
@@ -249,54 +244,41 @@ classDiagram
     -audit: AuditService
     +getStepsFor(type: CertificateType) Promise~WorkflowStepSnapshot[]~
     +getConfiguration() Promise~WorkflowConfiguration~
-    +replaceSteps(type: CertificateType?, steps: WorkflowStepSnapshot[], actorId: UUID, ip: string?) Promise~void~
+    +replaceSteps(type: CertificateType?, steps: WorkflowStepSnapshot[], actorId: string, ip: string?) Promise~void~
+  }
+
+  class WorkflowRules {
+    <<module>>
+    +APPROVER_ROLES: RoleName[]
+    +MAX_WORKFLOW_STEPS: int = 6
+    +DEFAULT_WORKFLOW: WorkflowStepSnapshot[]
+    +validateWorkflowSteps(steps: WorkflowStepSnapshot[]) string?
+    +parseWorkflowSnapshot(value: unknown) WorkflowStepSnapshot[]
+    +checkCanDecide(request: WorkflowRequestState, actor: WorkflowActor, previousApproverIds: string[]) DecisionCheck
+    +stateAfterApproval(steps: WorkflowStepSnapshot[], currentStepIndex: int) StatusAndStep
   }
 
   class DocumentsService {
     -prisma: PrismaService
+    -audit: AuditService
+    -storage: StorageService
     -students: StudentDataProvider
     -signing: SigningProviders
-    -storage: StorageService
-    -audit: AuditService
     -config: AppConfig
-    +prepareForSigning(requestId: UUID, actorId: UUID, ip: string?) Promise~UUID~
-    +sign(documentId: UUID, signer: AuthContext, clientSignature: string?, ip: string?) Promise~DocumentSummary~
-    +getSummary(documentId: UUID) Promise~DocumentSummary~
-    +listForStudent(studentUserId: UUID) Promise~DocumentSummary[]~
-    +getDownload(documentId: UUID, user: AuthContext, ip: string?) Promise~DownloadableFile~
+    +prepareForSigning(requestId: string, actorId: string, ip: string?) Promise~string~
+    +sign(documentId: string, signer: AuthContext, clientSignature: string?, ip: string?) Promise~DocumentSummary~
+    +getSummary(documentId: string) Promise~DocumentSummary~
+    +listForStudent(studentUserId: string) Promise~DocumentSummary[]~
+    +getDownload(documentId: string, user: AuthContext, ip: string?) Promise~DownloadableFile~
     +verify(token: string) Promise~VerificationResult~
-    +revoke(documentId: UUID, reason: string, actorId: UUID, ip: string?) Promise~DocumentSummary~
+    +revoke(documentId: string, reason: string, actorId: string, ip: string?) Promise~DocumentSummary~
     -checkSignature(signature: DocumentSignature) Promise~SignatureCheck~
-    -nextDocumentNumber() Promise~string~
   }
 
-  class AdminService {
-    -prisma: PrismaService
-    -sessions: SessionService
-    -audit: AuditService
-    -config: AppConfig
-    +listUsers(query: UsersQueryDto) Promise~AdminUserView[]~
-    +createStaffUser(dto: CreateStaffUserDto, actorId: UUID, ip: string?) Promise~AdminUserView~
-    +updateRoles(targetId: UUID, roles: RoleName[], actorId: UUID, ip: string?) Promise~AdminUserView~
-    +updateStatus(targetId: UUID, isActive: boolean, actorId: UUID, ip: string?) Promise~AdminUserView~
-    +listAuditLogs(query: AuditLogsQueryDto) Promise~Page~AuditLogView~~
-  }
-
-  class AuthService {
-    -prisma: PrismaService
-    -students: StudentDataProvider
-    -audit: AuditService
-    +resolveUser(identity: ExternalIdentity, ip: string?) Promise~ResolvedUser~
-  }
-
-  class SessionService {
-    -prisma: PrismaService
-    -config: AppConfig
-    +create(userId: UUID, ip: string?, userAgent: string?) Promise~CreatedSession~
-    +resolve(token: string) Promise~AuthContext?~
-    +destroy(sessionId: UUID) Promise~void~
-    +destroyAllForUser(userId: UUID) Promise~void~
-    +deleteExpired() Promise~int~
+  class VerificationRules {
+    <<module>>
+    +isVerificationTokenFormat(token: string) boolean
+    +computeVerificationStatus(facts: VerificationFacts) VerificationStatus
   }
 
   class AuditService {
@@ -311,18 +293,23 @@ classDiagram
     +resolveInside(relativePath: string) string
   }
 
-  class AuthProvider {
-    <<interface>>
-    +name: string
-    +buildAuthorizationUrl(state: string) string
-    +handleCallback(code: string) Promise~ExternalIdentity~
-  }
   class StudentDataProvider {
     <<interface>>
-    +getStudentById(externalStudentId: string) Promise~StudentAcademicProfile?~
+    +source: string
+    +getStudentById(externalStudentId: string) Promise~StudentAcademicProfile~
     +getCurrentStudent(identity: StudentIdentity) Promise~StudentAcademicProfile~
-    +getStudentAcademicStatus(externalStudentId: string) Promise~StudentAcademicStatus?~
+    +getStudentAcademicStatus(externalStudentId: string) Promise~StudentAcademicStatus~
   }
+
+  class PlatonusStudentDataProvider
+  class MockStudentDataProvider
+
+  class SigningProviders {
+    <<interface>>
+    +active: SigningProvider
+    +byName(name: string) SigningProvider?
+  }
+
   class SigningProvider {
     <<interface>>
     +name: string
@@ -332,50 +319,42 @@ classDiagram
     +verify(input: VerifyInput) Promise~SignatureCheck~
   }
 
-  class MockAuthProvider
-  class PlatonusSsoProvider
-  class MockStudentDataProvider
-  class PlatonusStudentDataProvider
-  class MockSigningProvider
   class OfficialSigningProvider
-
-  class SessionGuard {
-    -sessions: SessionService
-    +canActivate(ctx: ExecutionContext) Promise~boolean~
-  }
-  class CsrfGuard {
-    +canActivate(ctx: ExecutionContext) boolean
-  }
-  class RolesGuard {
-    -reflector: Reflector
-    +canActivate(ctx: ExecutionContext) boolean
-  }
+  class MockSigningProvider
 
   RequestsController "1" --> "1" RequestsService
   StaffController "1" --> "1" RequestsService
+  StaffController "1" --> "1" StudentDataProvider
   DocumentsController "1" --> "1" DocumentsService
-  RequestsService ..> WorkflowRules : uses
+  DocumentsController "1" --> "1" SigningProviders
+
   RequestsService "1" --> "1" WorkflowService
   RequestsService "1" --> "1" DocumentsService
   RequestsService "1" --> "1" StudentDataProvider
-  DocumentsService "1" --> "1" StudentDataProvider
-  DocumentsService "1" --> "1..*" SigningProvider : active + byName
-  DocumentsService "1" --> "1" StorageService
-  WorkflowService ..> WorkflowRules : uses
-  AuthService "1" --> "1" StudentDataProvider
-  AdminService "1" --> "1" SessionService
-  SessionGuard "1" --> "1" SessionService
   RequestsService "1" --> "1" AuditService
-  DocumentsService "1" --> "1" AuditService
-  AdminService "1" --> "1" AuditService
-  AuthService "1" --> "1" AuditService
+  RequestsService ..> WorkflowRules : uses
 
-  AuthProvider <|.. MockAuthProvider
-  AuthProvider <|.. PlatonusSsoProvider
-  StudentDataProvider <|.. MockStudentDataProvider
+  WorkflowService "1" --> "1" AuditService
+  WorkflowService ..> WorkflowRules : validates with
+
+  DocumentsService "1" --> "1" StorageService
+  DocumentsService "1" --> "1" StudentDataProvider
+  DocumentsService "1" --> "1" SigningProviders
+  DocumentsService "1" --> "1" AuditService
+  DocumentsService ..> VerificationRules : uses
+
+  SigningProviders "1" --> "1..*" SigningProvider : registers
+
   StudentDataProvider <|.. PlatonusStudentDataProvider
-  SigningProvider <|.. MockSigningProvider
+  StudentDataProvider <|.. MockStudentDataProvider
   SigningProvider <|.. OfficialSigningProvider
+  SigningProvider <|.. MockSigningProvider
 ```
 
-The three `«interface»` classes are the integration boundaries: the concrete class is chosen from environment variables at start-up (`AUTH_PROVIDER`, `STUDENT_DATA_PROVIDER`, `SIGNING_PROVIDER`), and the API refuses to start in production with any mock implementation.
+Notes:
+
+- `string?` is `string | null` in the source, and `Promise~StudentAcademicProfile~` from `getStudentById` can resolve to `null` (student not found).
+- `stateAfterApproval` returns `{ status: RequestStatus; currentStepIndex: number }`, shown as `StatusAndStep`.
+- Which implementation is injected for each «interface» is chosen by configuration (`STUDENT_DATA_PROVIDER`, `SIGNING_PROVIDER`). Production refuses the mock ones (NFR-SEC-08).
+- `PrismaService` is injected into every service and is left out of the drawing.
+- Gateway classes (`SessionGuard`, `CsrfGuard`, `RolesGuard`) and `AdminService` / `AuthService` / `SessionService` are described on the [CRC cards](crc-cards.md).

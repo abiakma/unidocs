@@ -1,0 +1,3 @@
+Follow the project rules in agents.md and development.md.
+Use strict TypeScript, check authorization on the backend, never hardcode secrets.
+AI must never approve, sign, revoke or issue documents or change academic records.

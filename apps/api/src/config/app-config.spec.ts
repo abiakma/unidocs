@@ -27,6 +27,12 @@ describe("loadConfig", () => {
     ).toThrow(/COOKIE_SECURE.*https/);
   });
 
+  it("uses API_PORT first, then the platform PORT", () => {
+    expect(loadConfig(base).port).toBe(3000);
+    expect(loadConfig({ ...base, PORT: "10000" }).port).toBe(10000);
+    expect(loadConfig({ ...base, PORT: "10000", API_PORT: "3001" }).port).toBe(3001);
+  });
+
   it("rejects invalid values", () => {
     expect(() => loadConfig({ ...base, SIGNING_PROVIDER: "fake" })).toThrow(ConfigError);
     expect(() => loadConfig({ ...base, VERIFICATION_BASE_URL: "javascript:alert(1)" })).toThrow(ConfigError);

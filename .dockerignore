@@ -1,0 +1,14 @@
+# Keep secrets, local data and generated files out of the image.
+.env
+.env.*
+!.env.example
+**/node_modules
+**/dist
+**/coverage
+apps/api/storage
+apps/api/src/generated
+.git
+.github
+.claude
+docs
+*.log

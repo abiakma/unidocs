@@ -2,8 +2,8 @@
 
 ## Requirements
 
-- Node.js 20.19+ (tested with 24), npm 10+
-- Docker Desktop (for PostgreSQL)
+- Node.js 22 LTS (`^22.22.2`) or 24.15+, npm 10+
+- PostgreSQL 17+: Docker Desktop (`npm run db:up`) or a locally installed server
 
 ## Local setup
 
@@ -66,3 +66,81 @@ server {
 ```
 
 Start the API with `npm run build -w apps/api && npm run db:migrate && npm start -w apps/api`.
+
+## Demo deployment on Render (free)
+
+This puts the **demo** (fictional data, mock integrations) on a public HTTPS URL. It is not the production setup above.
+
+### How it runs
+
+One Docker service serves both the React app and the API from the same origin:
+
+```text
+Browser ──HTTPS──▶ Render ──▶ container :PORT
+                               ├─ /api/*   → NestJS API ──▶ Render PostgreSQL
+                               └─ /*       → apps/web/dist (React build)
+```
+
+- [`Dockerfile`](../Dockerfile) builds both apps in a build stage and copies only the output into the runtime image, which runs as the unprivileged `node` user.
+- [`docker-start.sh`](../docker-start.sh) runs `prisma migrate deploy` on every start, optionally loads the fictional demo data, then starts the API.
+- The API reads Render's `PORT` and serves the web build when `WEB_DIST_DIR` is set (the image sets it).
+- Render builds the image itself, so Docker is **not** needed on your computer. GitHub Actions also builds the image on every push to catch Dockerfile errors early.
+
+### Why `NODE_ENV=development`
+
+With `NODE_ENV=production` the API refuses to start while the mock login, mock student data or mock signing are enabled. This is a deliberate safety rule, and the real Platonus and NCALayer integrations are not available. The demo therefore runs in development mode. This means:
+
+- **Anyone with the URL can log in as any fictional user, including the system administrator**, and change the demo data. Do not enter real personal data.
+- Swagger UI is public at `/api/docs`.
+- Production checks are not enforced. Set `COOKIE_SECURE=true` yourself (see below).
+- Every PDF is marked *TEST / NOT LEGALLY SIGNED*.
+
+### Steps
+
+1. **Database.** In Render, choose *New → PostgreSQL* and select the Free plan. Copy its **Internal Database URL**. The free database **expires after 30 days**.
+2. **Web service.** Choose *New → Web Service*, connect the GitHub repository and the branch (normally `main`). Set:
+
+   | Field | Value |
+   | --- | --- |
+   | Language / runtime | Docker |
+   | Root Directory | *(blank)* |
+   | Dockerfile Path | `./Dockerfile` |
+   | Instance type | Free |
+   | Health Check Path | `/api/health` |
+
+3. **Environment variables** (Render → Environment). Replace `YOUR_APP` with the service name Render shows:
+
+   | Variable | Value |
+   | --- | --- |
+   | `NODE_ENV` | `development` |
+   | `DATABASE_URL` | Internal Database URL from step 1 (keep it secret) |
+   | `WEB_BASE_URL` | `https://YOUR_APP.onrender.com` |
+   | `VERIFICATION_BASE_URL` | `https://YOUR_APP.onrender.com` |
+   | `COOKIE_SECURE` | `true` |
+   | `TRUST_PROXY_HOPS` | `1` |
+   | `RUN_DEMO_SEED` | `true` (creates the fictional staff accounts and the approval chain) |
+
+   Do not set `API_PORT`: Render provides `PORT`. Leave the integration variables at their defaults (`mock`).
+
+4. **Deploy** and follow the build log. The first build takes several minutes.
+5. **Check:**
+   - `https://YOUR_APP.onrender.com/api/health` returns `{"status":"ok"}`.
+   - Run through the main journey: log in as `PL-100001` → request a certificate → approve as `staff-specialist` and `staff-accountant` → sign as `staff-signer` → download the PDF as the student → open the QR link on another device.
+   - Redeploy, then confirm the request is still there (it is stored in PostgreSQL).
+
+### Free-plan limits
+
+| Limit | Effect on UniDocs |
+| --- | --- |
+| Sleeps after 15 idle minutes | The first request afterwards can take about a minute. Open the site a few minutes before a demonstration. |
+| Temporary filesystem | Generated PDFs (`STORAGE_DIR`) are **lost on restart or redeploy**. The request and document records remain in PostgreSQL, but downloading an older PDF fails. |
+| Free PostgreSQL expires after 30 days | Export with `pg_dump` if the data is needed, or create a new database and redeploy (migrations and seed run on start). |
+| `/api/health` | Shows only that the process responds, not that the database works. |
+
+### Rollback
+
+Use Render's *Rollback* to a previous deploy, or `git revert` the bad commit and push. Migrations are not rolled back automatically, so check database compatibility first.
+
+### Remove after the course
+
+Delete the web service and the database in the Render dashboard after exporting anything you need.

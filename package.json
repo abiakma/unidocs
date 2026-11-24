@@ -31,7 +31,7 @@
   },
   "homepage": "https://github.com/abiakma/unidocs#readme",
   "engines": {
-    "node": ">=20.19"
+    "node": "^22.22.2 || >=24.15.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
