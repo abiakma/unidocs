@@ -48,6 +48,44 @@ Web: http://localhost:5173 · API: http://localhost:3000/api · Swagger: http://
 
 Then: *Log in with Platonus* → pick **PL-100001** → request a certificate → log in as `staff-specialist`, `staff-accountant`, `staff-signer` to approve and sign → download the PDF as the student → scan the QR code.
 
+## Testing
+
+```bash
+npm run typecheck   # strict TypeScript, both apps
+npm run lint        # ESLint, whole repository
+npm test            # API unit + end-to-end tests, web component tests
+```
+
+| Suite | Location | What it covers |
+| --- | --- | --- |
+| API unit | `apps/api/src/**/*.spec.ts` | Workflow rules, config validation, auth and signing providers, storage, PDF, verification |
+| API end-to-end | `apps/api/test/app.e2e-spec.ts` | Full request → approve → sign → download → verify flow, role and ownership checks |
+| Web | `apps/web/src/test/*.spec.tsx` | Components, staff dashboard, translations |
+
+The end-to-end tests need PostgreSQL (`npm run db:up`). They create a separate `unidocs_test` database and are **skipped** when the database is not reachable, so check the summary for skipped tests.
+
+Every push runs the same commands in GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) against a real PostgreSQL service. The Actions tab shows the results.
+
+## Security
+
+- **Authorization is checked on the backend.** Role guards protect every staff and admin route. Students can only see their own requests and documents: another student's ID returns `404`, which also hides whether the record exists.
+- **Sessions** are stored server-side. The cookie is `httpOnly` and `SameSite=Lax`, and only a SHA-256 hash of the token is kept in the database. State-changing requests need an `X-CSRF-Token` header.
+- **Input validation**: DTOs use `class-validator` with `whitelist`, so unknown fields are rejected.
+- **Hardening**: `helmet` security headers, rate limiting (120 requests per minute per client), audit log of staff actions.
+- **QR verification** uses a random UUID token, never the internal ID. The public page shows only what a verifier needs, not the full academic record.
+- **Secrets** come from `.env`, which is git-ignored. `.env.example` contains placeholders only.
+- **Production guard**: the API refuses to start in production while any mock integration or insecure cookie setting is enabled.
+
+## Known limitations
+
+- **Mock integrations only.** Login and student data use fictional Platonus identities. Official Platonus SSO and API access need university documentation and credentials we do not have.
+- **Documents are not legally signed.** The mock signer stamps every PDF with *TEST / NOT LEGALLY SIGNED*. NCALayer / NCA RK signing is not implemented.
+- **Single university.** The system is built for AHEU. There is no multi-university data separation, so a system administrator sees all data.
+- **No email or push notifications.** Students follow progress on their dashboard.
+- **Local file storage.** PDFs are saved on the API server's disk (`STORAGE_DIR`), not in object storage, and there is no backup.
+- **Not deployed.** The project runs locally. [`docs/deployment.md`](docs/deployment.md) describes what a real deployment would need.
+- **AI does not make decisions.** No AI component approves, signs, revokes or edits academic data. See [`docs/ai-usage.md`](docs/ai-usage.md).
+
 ## Database
 
 PostgreSQL 17 managed with Prisma 7. Schema: [`apps/api/prisma/schema.prisma`](apps/api/prisma/schema.prisma), migrations in `apps/api/prisma/migrations/`.
