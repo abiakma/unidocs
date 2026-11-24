@@ -123,5 +123,6 @@ Technical guides:
 - [Digital signature](docs/digital-signature.md)
 - [QR verification](docs/qr-verification.md)
 - [Deployment](docs/deployment.md)
+- [Use of AI assistance](docs/ai-usage.md)
 
 Project rules for contributors and AI tools: [agents.md](agents.md), [development.md](development.md), [docs/specifications.md](docs/specifications.md).
