@@ -52,3 +52,11 @@ jobs:
 
       - name: Test (unit, component and API end-to-end)
         run: npm test
+
+  docker:
+    # Checks that the deployment image still builds (the same Dockerfile Render uses).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t unidocs:ci .
