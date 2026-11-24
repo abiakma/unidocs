@@ -22,5 +22,5 @@ All diagrams are text-based [Mermaid](https://mermaid.js.org/) and render direct
 
 ## Related
 
-- [Database ERD (Crow's Foot)](../database-erd.md) — Assignment 2
+- [Database design: ERD (Crow's Foot)](../database-erd.md)
 - [Architecture](../architecture.md), [API](../api-documentation.md), [Approval workflow](../approval-workflow.md)
