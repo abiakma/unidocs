@@ -6,17 +6,20 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module.js";
 import { APP_CONFIG, type AppConfig } from "./config/app-config.js";
 import { configureApp } from "./configure-app.js";
+import { serveWebApp } from "./web-app.js";
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<AppConfig>(APP_CONFIG);
   configureApp(app, config);
+  if (config.webDistDir) serveWebApp(app, config.webDistDir);
   app.enableShutdownHooks();
 
   await app.listen(config.port);
   const logger = new Logger("Bootstrap");
   logger.log(`API listening on http://localhost:${config.port}/api`);
   if (config.nodeEnv !== "production") logger.log(`Swagger UI: http://localhost:${config.port}/api/docs`);
+  if (config.webDistDir) logger.log(`Serving the web app from ${config.webDistDir}`);
   if (config.signingProvider === "mock") logger.warn("Mock signing provider: documents are TEST / NOT LEGALLY SIGNED");
 }
 
